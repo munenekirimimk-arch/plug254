@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>plug254 — Your AI Employee on WhatsApp</title>
+<meta name="description" content="Plug254 is an AI employee that lives on your business WhatsApp: it answers every customer, qualifies them, sends prices and photos, books appointments, takes payments and follows up — so the owner only sees important leads.">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: { wa:'#25D366', wadark:'#075E54', wahead:'#008069', ink:'#0B1F1A', mint:'#EAF9F0', cream:'#FBFDFB' },
+    fontFamily: { sans:['Plus Jakarta Sans','sans-serif'], disp:['Space Grotesk','sans-serif'] }
+  }}
+}
+</script>
+<style>
+  :root{ --wa:#25D366; --wahead:#008069; --ink:#0B1F1A; }
+  html{ scroll-behavior:smooth; }
+  body{ font-family:'Plus Jakarta Sans',sans-serif; background:#FBFDFB; color:var(--ink); }
+  .font-disp{ font-family:'Space Grotesk',sans-serif; }
+  .grad-text{ background:linear-gradient(92deg,#075E54 0%,#25D366 60%,#7ef0ae 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero-bg{ background:
+      radial-gradient(900px 480px at 85% -10%, rgba(37,211,102,.16), transparent 60%),
+      radial-gradient(700px 420px at -10% 30%, rgba(0,128,105,.12), transparent 60%),
+      #FBFDFB; }
+  .card-hover{ transition:transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s; }
+  .card-hover:hover{ transform:translateY(-6px); box-shadow:0 24px 60px -24px rgba(7,94,84,.28); }
+  .reveal{ opacity:0; transform:translateY(26px); transition:opacity .7s ease, transform .7s cubic-bezier(.2,.8,.2,1); }
+  .reveal.in{ opacity:1; transform:none; }
+
+  /* ---------- Phone / chat ---------- */
+  .phone{ width:340px; max-width:92vw; border-radius:2.4rem; background:#111; padding:11px; box-shadow:0 40px 90px -30px rgba(7,94,84,.45), 0 0 0 1px rgba(0,0,0,.06); }
+  .phone-screen{ border-radius:1.9rem; overflow:hidden; background:#e5ddd5; background-image:radial-gradient(rgba(0,0,0,.045) 1px, transparent 1px); background-size:18px 18px; position:relative; }
+  .chat-body{ height:430px; overflow-y:auto; scrollbar-width:none; padding:14px 12px 12px; display:flex; flex-direction:column; gap:8px; }
+  .chat-body::-webkit-scrollbar{ display:none; }
+  .bubble{ max-width:82%; padding:8px 10px 6px; border-radius:10px; font-size:13.5px; line-height:1.42; position:relative; box-shadow:0 1px 1px rgba(0,0,0,.12); animation:pop .35s cubic-bezier(.2,.9,.3,1.2); word-break:break-word; }
+  @keyframes pop{ from{ opacity:0; transform:translateY(10px) scale(.96);} to{ opacity:1; transform:none;} }
+  .bubble.in{ background:#fff; align-self:flex-start; border-top-left-radius:2px; }
+  .bubble.out{ background:#d9fdd3; align-self:flex-end; border-top-right-radius:2px; }
+  .bubble.sys{ background:#fdf3c6; align-self:center; font-size:11px; color:#6b5d1f; border-radius:8px; padding:6px 10px; box-shadow:none; text-align:center; }
+  .b-meta{ display:flex; justify-content:flex-end; align-items:center; gap:4px; font-size:10px; color:#8a9a94; margin-top:3px; }
+  .b-img{ border-radius:8px; overflow:hidden; margin-bottom:4px; }
+  .b-img img{ display:block; width:190px; height:120px; object-fit:cover; }
+  .typing{ display:inline-flex; gap:4px; padding:4px 2px; }
+  .typing i{ width:6px; height:6px; border-radius:50%; background:#9aa8a2; animation:blink 1.2s infinite; }
+  .typing i:nth-child(2){ animation-delay:.18s } .typing i:nth-child(3){ animation-delay:.36s }
+  @keyframes blink{ 0%,70%,100%{opacity:.3} 35%{opacity:1} }
+  .qr-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .qr{ border:1px solid #53bdeb; color:#00a5f4; font-size:12px; font-weight:600; padding:5px 10px; border-radius:999px; background:#fff; cursor:pointer; transition:.2s; }
+  .qr:hover{ background:#e7f6fd; transform:translateY(-1px); }
+
+  /* owner panel */
+  .owner-panel{ height:430px; overflow-y:auto; scrollbar-width:none; padding:14px; display:flex; flex-direction:column; gap:10px; background:#f4f7f6; }
+  .owner-panel::-webkit-scrollbar{ display:none; }
+  .lead-card{ background:#fff; border-radius:14px; padding:12px; border:1px solid #e3ece8; box-shadow:0 4px 14px -8px rgba(7,94,84,.2); animation:pop .4s ease; }
+  .pill{ font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:999px; }
+  .toggle-btn{ font-size:12px; font-weight:700; padding:5px 10px; border-radius:999px; color:#cfe9df; transition:.2s; }
+  .toggle-btn.on{ background:#fff; color:#075E54; }
+
+  /* demo tabs */
+  .tab{ font-size:13px; font-weight:600; padding:8px 14px; border-radius:999px; border:1.5px solid #d7e6df; color:#3d5a52; background:#fff; cursor:pointer; transition:.2s; white-space:nowrap; }
+  .tab:hover{ border-color:#25D366; color:#075E54; }
+  .tab.on{ background:#0B1F1A; color:#fff; border-color:#0B1F1A; }
+
+  .pipe-step{ position:relative; }
+  .pipe-step::after{ content:''; position:absolute; top:26px; left:calc(50% + 30px); width:calc(100% - 60px); border-top:2px dashed #bfe6cf; }
+  .pipe-step:last-child::after{ display:none; }
+
+  details summary::-webkit-details-marker{ display:none; }
+  details[open] .faq-plus{ transform:rotate(45deg); }
+  .faq-plus{ transition:transform .3s; }
+  .marq{ display:flex; gap:2.5rem; animation:marq 26s linear infinite; width:max-content; }
+  @keyframes marq{ to{ transform:translateX(-50%);} }
+</style>
+</head>
+<body class="antialiased">
+
+<!-- ============ NAV ============ -->
+<header class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-cream/80 border-b border-emerald-900/10">
+  <nav class="max-w-6xl mx-auto flex items-center justify-between px-5 h-16">
+    <a href="#top" class="flex items-center gap-2.5">
+      <span class="w-9 h-9 rounded-xl bg-wa grid place-items-center shadow-lg shadow-emerald-500/30">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.4-.7-2.9-1.2-4.7-4.1-4.9-4.3-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5s.8 1.9.8 2c.1.1.1.3 0 .5l-.3.5c-.1.2-.3.4-.1.7.2.3.8 1.3 1.7 2.1 1.2 1.1 2.2 1.4 2.5 1.5.3.1.5.1.7-.1l1-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.4 0 .1 0 .7-.4 1.3Z"/></svg>
+      </span>
+      <span class="font-disp font-700 text-xl tracking-tight" style="font-weight:700">pally</span>
+    </a>
+    <div class="hidden md:flex items-center gap-8 text-sm font-semibold text-emerald-950/70">
+      <a href="#demo" class="hover:text-wadark transition">Live demo</a>
+      <a href="#how" class="hover:text-wadark transition">How it works</a>
+      <a href="#features" class="hover:text-wadark transition">Features</a>
+      <a href="#pricing" class="hover:text-wadark transition">Pricing</a>
+    </div>
+    <a href="#pricing" class="bg-ink text-white text-sm font-bold px-5 py-2.5 rounded-full hover:bg-wadark transition shadow-lg shadow-emerald-900/20">Hire Pally</a>
+  </nav>
+</header>
+
+<!-- ============ HERO ============ -->
+<section id="top" class="hero-bg pt-28 pb-16 md:pt-36 md:pb-24">
+  <div class="max-w-6xl mx-auto px-5 grid md:grid-cols-2 gap-14 items-center">
+    <div class="reveal in">
+      <div class="inline-flex items-center gap-2 bg-white border border-emerald-200 rounded-full px-4 py-1.5 text-xs font-bold text-wadark shadow-sm mb-6">
+        <span class="w-2 h-2 rounded-full bg-wa animate-pulse"></span> AI EMPLOYEE · WORKS 24/7 ON WHATSAPP
+      </div>
+      <h1 class="font-disp text-5xl md:text-[3.6rem] leading-[1.05] font-bold tracking-tight">
+        Your next employee<br>lives on <span class="grad-text">WhatsApp.</span>
+      </h1>
+      <p class="mt-6 text-lg text-emerald-950/70 max-w-lg leading-relaxed">
+        Pally answers every customer in seconds, qualifies them, sends prices and photos, books appointments, collects payments and follows up — while you only hear about the leads that matter.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-4">
+        <a href="#demo" class="bg-wa text-white font-bold px-7 py-3.5 rounded-full hover:brightness-105 transition shadow-xl shadow-emerald-500/30">Watch it work</a>
+        <a href="#how" class="bg-white border border-emerald-200 font-bold px-7 py-3.5 rounded-full hover:border-wa transition">How it works</a>
+      </div>
+      <div class="mt-10 flex items-center gap-6 text-sm text-emerald-950/60 font-semibold">
+        <div><span class="text-2xl font-disp font-bold text-ink">45s</span><br>avg. response</div>
+        <div class="w-px h-10 bg-emerald-900/10"></div>
+        <div><span class="text-2xl font-disp font-bold text-ink">3.2×</span><br>more bookings</div>
+        <div class="w-px h-10 bg-emerald-900/10"></div>
+        <div><span class="text-2xl font-disp font-bold text-ink">24/7</span><br>never sleeps</div>
+      </div>
+    </div>
+
+    <!-- hero phone -->
+    <div class="justify-self-center reveal in">
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="bg-wahead px-4 py-3 flex items-center gap-3 text-white">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            <div class="w-9 h-9 rounded-full bg-white/20 grid place-items-center font-disp font-bold">G</div>
+            <div class="flex-1">
+              <div class="text-sm font-bold leading-tight">Glow Salon</div>
+              <div class="text-[11px] text-emerald-100/80">online · replies instantly</div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2Z"/></svg>
+          </div>
+          <div class="chat-body" id="heroChat"></div>
+          <div class="bg-[#f0f2f5] px-3 py-2.5 flex items-center gap-2">
+            <div class="flex-1 bg-white rounded-full px-4 py-2 text-[13px] text-emerald-950/40">Message</div>
+            <div class="w-9 h-9 rounded-full bg-wa grid place-items-center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M3 20l18-8L3 4v6l12 2-12 2v6z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- marquee -->
+  <div class="mt-16 overflow-hidden border-y border-emerald-900/10 py-4 bg-white/60">
+    <div class="marq font-disp font-semibold text-emerald-950/50 text-lg">
+      <span>Hair Salons</span><span>·</span><span>Dental Clinics</span><span>·</span><span>Real-Estate Agents</span><span>·</span><span>Restaurants</span><span>·</span><span>Airbnb Hosts</span><span>·</span><span>Car Dealers</span><span>·</span><span>Schools</span><span>·</span><span>Fitness Studios</span><span>·</span>
+      <span>Hair Salons</span><span>·</span><span>Dental Clinics</span><span>·</span><span>Real-Estate Agents</span><span>·</span><span>Restaurants</span><span>·</span><span>Airbnb Hosts</span><span>·</span><span>Car Dealers</span><span>·</span><span>Schools</span><span>·</span><span>Fitness Studios</span><span>·</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LIVE DEMO ============ -->
+<section id="demo" class="py-20 md:py-28 bg-ink text-white relative overflow-hidden">
+  <div class="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-wa/10 blur-3xl"></div>
+  <div class="max-w-6xl mx-auto px-5">
+    <div class="text-center max-w-2xl mx-auto reveal">
+      <div class="text-wa font-bold tracking-widest text-xs mb-3">LIVE INTERACTIVE DEMO</div>
+      <h2 class="font-disp text-4xl md:text-5xl font-bold tracking-tight">Watch Pally run a real business.</h2>
+      <p class="mt-4 text-white/60 text-lg">Pick an industry. Play the conversation. Then flip to the owner's phone to see exactly what the owner receives.</p>
+    </div>
+
+    <div class="mt-10 flex gap-2.5 overflow-x-auto pb-3 justify-start md:justify-center reveal" id="tabs"></div>
+
+    <div class="mt-8 grid lg:grid-cols-[340px_1fr] gap-8 items-start justify-center">
+      <!-- interactive phone -->
+      <div class="justify-self-center reveal">
+        <div class="phone" style="box-shadow:0 40px 90px -30px rgba(37,211,102,.25)">
+          <div class="phone-screen">
+            <div class="bg-wahead px-4 py-3 flex items-center gap-3 text-white">
+              <div class="w-9 h-9 rounded-full grid place-items-center font-disp font-bold text-sm" id="demoAvatar">G</div>
+              <div class="flex-1">
+                <div class="text-sm font-bold leading-tight" id="demoBiz">Glow Salon</div>
+                <div class="text-[11px] text-emerald-100/80" id="demoStatus">online · replies instantly</div>
+              </div>
+              <button class="toggle-btn on" id="btnChatView" onclick="setView('chat')">Chat</button>
+              <button class="toggle-btn" id="btnOwnerView" onclick="setView('owner')">Owner</button>
+            </div>
+            <div class="chat-body" id="demoChat"></div>
+            <div class="owner-panel hidden" id="ownerPanel"></div>
+            <div class="bg-[#f0f2f5] px-3 py-2.5 flex items-center gap-2">
+              <div class="flex-1 bg-white rounded-full px-4 py-2 text-[13px] text-emerald-950/40" id="inputHint">Pally is handling this chat…</div>
+              <button onclick="restartDemo()" class="w-9 h-9 rounded-full bg-wa grid place-items-center" title="Replay">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 5V1L7 6l5 5V7c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="text-center mt-4">
+          <button onclick="playDemo()" id="playBtn" class="bg-wa text-ink font-bold px-6 py-2.5 rounded-full hover:brightness-105 transition text-sm">Play conversation</button>
+        </div>
+      </div>
+
+      <!-- explanation side -->
+      <div class="reveal">
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="w-10 h-10 rounded-xl bg-wa/20 grid place-items-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a7 7 0 0 1 7 7c0 2.4-1.2 4.5-3 5.7V17a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-2.3C6.2 13.5 5 11.4 5 9a7 7 0 0 1 7-7Zm-3 19h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1Z"/></svg>
+            </span>
+            <h3 class="font-disp text-2xl font-bold" id="demoTitle">Front desk, but smarter</h3>
+          </div>
+          <p class="text-white/60 leading-relaxed" id="demoDesc">Every missed WhatsApp message is lost revenue. Pally answers in seconds, speaks your customer's language, and never has a bad day.</p>
+          <div class="mt-6 grid sm:grid-cols-2 gap-3" id="demoPoints"></div>
+          <div class="mt-6 border-t border-white/10 pt-5 flex flex-wrap gap-2" id="demoChips"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section id="how" class="py-20 md:py-28">
+  <div class="max-w-6xl mx-auto px-5">
+    <div class="text-center max-w-2xl mx-auto reveal">
+      <div class="text-wadark font-bold tracking-widest text-xs mb-3">THE PIPELINE</div>
+      <h2 class="font-disp text-4xl md:text-5xl font-bold tracking-tight">From “hi” to paid — automatically.</h2>
+    </div>
+    <div class="mt-14 grid grid-cols-2 md:grid-cols-5 gap-8 reveal">
+      <div class="pipe-step text-center">
+        <div class="w-[52px] h-[52px] mx-auto rounded-2xl bg-mint grid place-items-center border border-emerald-200 relative z-10">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.8L3 20l1-4.9a8.4 8.4 0 1 1 17-3.6Z"/></svg>
+        </div>
+        <div class="mt-4 font-bold text-sm">1. Answers</div>
+        <div class="text-xs text-emerald-950/55 mt-1.5 leading-relaxed">Replies in under a minute, 24/7, in any language.</div>
+      </div>
+      <div class="pipe-step text-center">
+        <div class="w-[52px] h-[52px] mx-auto rounded-2xl bg-mint grid place-items-center border border-emerald-200 relative z-10">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
+        <div class="mt-4 font-bold text-sm">2. Qualifies</div>
+        <div class="text-xs text-emerald-950/55 mt-1.5 leading-relaxed">Asks the right questions: budget, date, needs, intent.</div>
+      </div>
+      <div class="pipe-step text-center">
+        <div class="w-[52px] h-[52px] mx-auto rounded-2xl bg-mint grid place-items-center border border-emerald-200 relative z-10">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+        </div>
+        <div class="mt-4 font-bold text-sm">3. Informs</div>
+        <div class="text-xs text-emerald-950/55 mt-1.5 leading-relaxed">Sends your price list, photos and FAQs instantly.</div>
+      </div>
+      <div class="pipe-step text-center">
+        <div class="w-[52px] h-[52px] mx-auto rounded-2xl bg-mint grid place-items-center border border-emerald-200 relative z-10">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+        </div>
+        <div class="mt-4 font-bold text-sm">4. Books & bills</div>
+        <div class="text-xs text-emerald-950/55 mt-1.5 leading-relaxed">Books into your calendar and sends payment instructions.</div>
+      </div>
+      <div class="pipe-step text-center">
+        <div class="w-[52px] h-[52px] mx-auto rounded-2xl bg-mint grid place-items-center border border-emerald-200 relative z-10">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        </div>
+        <div class="mt-4 font-bold text-sm">5. Follows up</div>
+        <div class="text-xs text-emerald-950/55 mt-1.5 leading-relaxed">Reminds, re-books, requests reviews — and escalates hot leads to you.</div>
+      </div>
+    </div>
+
+    <div class="mt-16 bg-mint border border-emerald-200 rounded-3xl p-8 md:p-10 grid md:grid-cols-[1fr_auto] gap-6 items-center reveal">
+      <div>
+        <h3 class="font-disp text-2xl font-bold">Owner-only escalation</h3>
+        <p class="mt-2 text-emerald-950/65 max-w-xl">You define the rules: budget above an amount, ready-to-book intent, unhappy customer, or anything unusual. Pally handles the rest silently and only pings you with a clean lead summary.</p>
+      </div>
+      <div class="bg-white rounded-2xl px-6 py-4 shadow-lg shadow-emerald-900/10 border border-emerald-100 flex items-center gap-4">
+        <span class="w-3 h-3 rounded-full bg-wa animate-pulse"></span>
+        <div class="text-sm"><span class="font-bold">3 hot leads</span> qualified today<br><span class="text-emerald-950/50 text-xs">average handle time: 41 seconds</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section id="features" class="py-20 md:py-28 bg-white border-y border-emerald-900/10">
+  <div class="max-w-6xl mx-auto px-5">
+    <div class="max-w-2xl reveal">
+      <div class="text-wadark font-bold tracking-widest text-xs mb-3">EVERYTHING INCLUDED</div>
+      <h2 class="font-disp text-4xl md:text-5xl font-bold tracking-tight">One employee.<br>Every front-desk skill.</h2>
+    </div>
+    <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div class="card-hover bg-cream border border-emerald-100 rounded-2xl p-7 reveal">
+        <div class="w-11 h-11 rounded-xl bg-wa/15 grid place-items-center mb-4"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <h3 class="font-bold text-lg">Instant answers, 24/7</h3>
+        <p class="mt-2 text-sm text-emerald-950/60 leading-relaxed">Never miss a 11pm “are you open?” again. Pally replies in under a minute, nights, weekends and holidays.</p>
+      </div>
+      <div class="card-hover bg-cream border border-emerald-100 rounded-2xl p-7 reveal">
+        <div class="w-11 h-11 rounded-xl bg-wa/15 grid place-items-center mb-4"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><path d="M12 2a15 15 0 0 1 0 30M12 2a15 15 0 0 0 0 30M2 12h20"/></svg></div>
+        <h3 class="font-bold text-lg">Speaks 40+ languages</h3>
+        <p class="mt-2 text-sm text-emerald-950/60 leading-relaxed">Auto-detects the customer's language and mirrors their tone — polite, friendly, professional.</p>
+      </div>
+      <div class="card-hover bg-cream border border-emerald-100 rounded-2xl p-7 reveal">
+        <div class="w-11 h-11 rounded-xl bg-wa/15 grid place-items-center mb-4"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></div>
+        <h3 class="font-bold text-lg">Books into your calendar</h3>
+        <p class="mt-2 text-sm text-emerald-950/60 leading-relaxed">Two-way sync with Google Calendar, Calendly-style slot picking, and automatic conflict checks.</p>
+      </div>
+      <div class="card-hover bg-cream border border-emerald-100 rounded-2xl p-7 reveal">
+        <div class="w-11 h-11 rounded-xl bg-wa/15 grid place-items-center mb-4"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>
+        <h3 class="font-bold text-lg">Takes payments</h3>
+        <p class="mt-2 text-sm text-emerald-950/60 leading-relaxed">Sends payment links and deposit instructions, confirms receipt and chases unpaid bookings politely.</p>
+      </div>
+      <div class="card-hover bg-cream border border-emerald-100 rounded-2xl p-7 reveal">
+        <div class="w-11 h-11 rounded-xl bg-wa/15 grid place-items-center mb-4"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><path d="M4 4h16v12H7l-3 3V4z"/><path d="M8 9h8M8 12h5"/></svg></div>
+        <h3 class="font-bold text-lg">Knows your business</h3>
+        <p class="mt-2 text-sm text-emerald-950/60 leading-relaxed">Upload your price list, menu, listings or FAQ once. Pally answers using only your approved facts — no hallucinations.</p>
+      </div>
+      <div class="card-hover bg-cream border border-emerald-100 rounded-2xl p-7 reveal">
+        <div class="w-11 h-11 rounded-xl bg-wa/15 grid place-items-center mb-4"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/></svg></div>
+        <h3 class="font-bold text-lg">Owner radar</h3>
+        <p class="mt-2 text-sm text-emerald-950/60 leading-relaxed">One daily digest: revenue booked, leads qualified, complaints flagged. Step in anytime with a single tap.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section id="pricing" class="py-20 md:py-28">
+  <div class="max-w-6xl mx-auto px-5">
+    <div class="text-center max-w-2xl mx-auto reveal">
+      <div class="text-wadark font-bold tracking-widest text-xs mb-3">PRICING</div>
+      <h2 class="font-disp text-4xl md:text-5xl font-bold tracking-tight">Less than a day of minimum wage.</h2>
+      <p class="mt-4 text-emerald-950/60 text-lg">No hardware. No training. Works from the number your customers already have.</p>
+    </div>
+    <div class="mt-14 grid md:grid-cols-3 gap-6 items-stretch">
+      <div class="card-hover bg-white border border-emerald-100 rounded-3xl p-8 flex flex-col reveal">
+        <div class="font-bold text-wadark text-sm">SOLO</div>
+        <div class="mt-3 font-disp text-4xl font-bold">$29<span class="text-base font-semibold text-emerald-950/50">/mo</span></div>
+        <p class="mt-2 text-sm text-emerald-950/55">For one-person shops getting their first AI employee.</p>
+        <ul class="mt-6 space-y-3 text-sm flex-1">
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> 1 WhatsApp number</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> 500 AI conversations /mo</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> FAQ + price list brain</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Booking links</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Daily owner digest</li>
+        </ul>
+        <a href="#demo" class="mt-8 block text-center border-2 border-ink font-bold py-3 rounded-full hover:bg-ink hover:text-white transition">Start free trial</a>
+      </div>
+      <div class="card-hover relative bg-ink text-white rounded-3xl p-8 flex flex-col shadow-2xl shadow-emerald-900/30 reveal">
+        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-wa text-ink text-xs font-bold px-4 py-1.5 rounded-full">MOST POPULAR</div>
+        <div class="font-bold text-wa text-sm">PRO</div>
+        <div class="mt-3 font-disp text-4xl font-bold">$79<span class="text-base font-semibold text-white/50">/mo</span></div>
+        <p class="mt-2 text-sm text-white/55">Full pipeline: qualify, book, bill and follow up.</p>
+        <ul class="mt-6 space-y-3 text-sm flex-1">
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Everything in Solo</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Unlimited conversations</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Calendar two-way sync</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Payments & deposits</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Owner escalation rules</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Auto follow-ups & review requests</li>
+        </ul>
+        <a href="#demo" class="mt-8 block text-center bg-wa text-ink font-bold py-3 rounded-full hover:brightness-105 transition">Hire Pally</a>
+      </div>
+      <div class="card-hover bg-white border border-emerald-100 rounded-3xl p-8 flex flex-col reveal">
+        <div class="font-bold text-wadark text-sm">MULTI-STAFF</div>
+        <div class="mt-3 font-disp text-4xl font-bold">$199<span class="text-base font-semibold text-emerald-950/50">/mo</span></div>
+        <p class="mt-2 text-sm text-emerald-950/55">Clinics, dealerships & schools with teams and locations.</p>
+        <ul class="mt-6 space-y-3 text-sm flex-1">
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Everything in Pro</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> 5 staff / locations</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Human handoff routing</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> CRM & Sheets sync</li>
+          <li class="flex gap-2.5"><span class="text-wa font-bold">✓</span> Priority support</li>
+        </ul>
+        <a href="#demo" class="mt-8 block text-center border-2 border-ink font-bold py-3 rounded-full hover:bg-ink hover:text-white transition">Talk to us</a>
+      </div>
+    </div>
+    <p class="text-center text-sm text-emerald-950/50 mt-8 reveal">14-day free trial · no card required · cancel anytime · set up in 15 minutes</p>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="py-20 md:py-28 bg-white border-t border-emerald-900/10">
+  <div class="max-w-3xl mx-auto px-5">
+    <h2 class="font-disp text-3xl md:text-4xl font-bold tracking-tight text-center reveal">Questions owners ask</h2>
+    <div class="mt-10 space-y-3 reveal">
+      <details class="group bg-cream border border-emerald-100 rounded-2xl px-6 py-4">
+        <summary class="flex justify-between items-center cursor-pointer font-bold text-[15px]">Does it work with my existing WhatsApp number?<span class="faq-plus text-wa text-xl font-bold">+</span></summary>
+        <p class="mt-3 text-sm text-emerald-950/60 leading-relaxed">Yes. Pally runs on the WhatsApp Business Platform. You keep your number and your existing chats; we connect it in about 15 minutes, or give you a fresh business number.</p>
+      </details>
+      <details class="group bg-cream border border-emerald-100 rounded-2xl px-6 py-4">
+        <summary class="flex justify-between items-center cursor-pointer font-bold text-[15px]">What if the AI doesn’t know an answer?<span class="faq-plus text-wa text-xl font-bold">+</span></summary>
+        <p class="mt-3 text-sm text-emerald-950/60 leading-relaxed">It says so honestly and offers to connect the customer to you — or takes a message. You can also teach Pally new answers anytime from the dashboard.</p>
+      </details>
+      <details class="group bg-cream border border-emerald-100 rounded-2xl px-6 py-4">
+        <summary class="flex justify-between items-center cursor-pointer font-bold text-[15px]">Can I still reply myself?<span class="faq-plus text-wa text-xl font-bold">+</span></summary>
+        <p class="mt-3 text-sm text-emerald-950/60 leading-relaxed">Anytime. Send “Pally, pause” from your phone and you take over instantly; send “resume” and it’s back on duty. You can also jump into any live chat with one tap.</p>
+      </details>
+      <details class="group bg-cream border border-emerald-100 rounded-2xl px-6 py-4">
+        <summary class="flex justify-between items-center cursor-pointer font-bold text-[15px]">Is my customers’ data safe?<span class="faq-plus text-wa text-xl font-bold">+</span></summary>
+        <p class="mt-3 text-sm text-emerald-950/60 leading-relaxed">Messages are encrypted in transit and at rest, never used to train shared models, and you can export or delete everything with one click.</p>
+      </details>
+      <details class="group bg-cream border border-emerald-100 rounded-2xl px-6 py-4">
+        <summary class="flex justify-between items-center cursor-pointer font-bold text-[15px]">I’m not tech-savvy. How hard is setup?<span class="faq-plus text-wa text-xl font-bold">+</span></summary>
+        <p class="mt-3 text-sm text-emerald-950/60 leading-relaxed">If you can send a WhatsApp message, you can set up Pally. Upload your price list or menu, connect your calendar, and go. Most owners are live the same day.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA + FOOTER ============ -->
+<section class="py-20 bg-ink text-white relative overflow-hidden">
+  <div class="absolute -bottom-40 left-1/3 w-[500px] h-[500px] rounded-full bg-wa/10 blur-3xl"></div>
+  <div class="max-w-3xl mx-auto px-5 text-center relative reveal">
+    <h2 class="font-disp text-4xl md:text-5xl font-bold tracking-tight">Your customers are on WhatsApp.<br><span class="grad-text">Now your business is too.</span></h2>
+    <p class="mt-5 text-white/60 text-lg">Set up in 15 minutes. First 14 days free.</p>
+    <a href="#pricing" class="inline-block mt-8 bg-wa text-ink font-bold px-9 py-4 rounded-full text-lg hover:brightness-105 transition shadow-2xl shadow-emerald-500/30">Hire your AI employee</a>
+  </div>
+</section>
+<footer class="bg-ink text-white/40 border-t border-white/10">
+  <div class="max-w-6xl mx-auto px-5 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
+    <div class="flex items-center gap-2">
+      <span class="w-7 h-7 rounded-lg bg-wa grid place-items-center"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z"/></svg></span>
+      <span class="font-disp font-bold text-white/80">pally</span>
+    </div>
+    <div>© 2026 Pally Labs · The AI employee for small business</div>
+    <div class="flex gap-6"><a href="#demo" class="hover:text-white transition">Demo</a><a href="#pricing" class="hover:text-white transition">Pricing</a><a href="#how" class="hover:text-white transition">How it works</a></div>
+  </div>
+</footer>
+
+<script>
+/* ================================================================
+   PALLY — demo engine
+   ================================================================ */
+const now = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+function placeholderImg(label, hue){
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='380' height='240'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='hsl(${hue},55%,42%)'/><stop offset='1' stop-color='hsl(${hue+40},60%,28%)'/></linearGradient></defs><rect width='380' height='240' fill='url(%23g)'/><circle cx='330' cy='30' r='60' fill='rgba(255,255,255,0.12)'/><text x='50%' y='46%' text-anchor='middle' fill='rgba(255,255,255,0.85)' font-family='Arial' font-size='19' font-weight='bold'>${label}</text><text x='50%' y='60%' text-anchor='middle' fill='rgba(255,255,255,0.55)' font-family='Arial' font-size='12'>tap to enlarge</text></svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg).replace(/%2523/g,'%23');
+}
+
+/* ---- scenario data ---- */
+const SCENARIOS = {
+  salon: {
+    tab:'Salon', biz:'Glow Salon', avatar:'G', hue:330,
+    title:'Never miss a booking again',
+    desc:'A customer messages at 10:47pm. Pally greets them, shows the menu, books the slot, takes a deposit and confirms — before the owner even wakes up.',
+    points:['Handles price questions with your exact menu','Offers real calendar slots and books instantly','Takes deposits so no-shows drop','Follows up with care instructions and rebooking'],
+    chips:['Booking deposit collected','Calendar synced','Rebooking in 6 weeks'],
+    convo:[
+      {who:'in', text:'Hi! Do you do knotless braids?'},
+      {who:'out', text:'Hi Amara! Yes we do — welcome to Glow Salon. I can get you booked in under a minute. Which day works best for you?'},
+      {who:'in', text:'Saturday if possible', qr:['Sat 10:00','Sat 14:00','Sun 11:00']},
+      {who:'out', text:'Great choice. Here is our braiding menu:', img:{label:'Braiding Menu', hue:330}, text2:'Knotless braids — $80 · Box braids — $65 · Touch-up — $25'},
+      {who:'in', text:'Knotless braids please. 2pm works'},
+      {who:'out', text:'Done! You are booked for Saturday 2:00pm with Zuri (our senior stylist). To lock it in we take a $15 deposit — it comes off your total.', pay:true},
+      {who:'in', text:'Paid!'},
+      {who:'out', text:'Deposit received, thank you! See you Saturday at 2pm. I will send you a reminder the day before, and aftercare tips after your visit.'},
+      {who:'sys', text:'Next day · 9:00am — automatic follow-up'},
+      {who:'out', text:'Good morning Amara! Looking forward to today at 2pm. Reply C to change your slot anytime.'}
+    ],
+    owner:[
+      {tag:'NEW BOOKING', color:'#25D366', name:'Amara O. — Knotless braids', rows:[['When','Saturday 2:00pm · Zuri'],['Value','$80 · deposit paid'],['Score','92 — ready to book'],['Handle time','38 sec']], note:'Pally handled 100% of this chat. No owner action needed.'}
+    ]
+  },
+  clinic: {
+    tab:'Clinic', biz:'BrightSmile Dental', avatar:'B', hue:200,
+    title:'A receptionist that never puts anyone on hold',
+    desc:'New patient enquiries get triaged gently: symptoms checked, insurance noted, the right slot offered, prep instructions sent. Emergencies are escalated to the owner immediately.',
+    points:['Triages urgency and flags emergencies to the owner','Collects insurance & intake info before the visit','Sends prep instructions automatically','Cuts front-desk call volume by ~60%'],
+    chips:['Emergency escalation','Intake form pre-filled','Reminder 24h before'],
+    convo:[
+      {who:'in', text:'Hello, do you accept new patients? I think I need a cleaning.'},
+      {who:'out', text:'Welcome to BrightSmile! We do accept new patients. Quick check so I book you correctly: any pain, bleeding or swelling right now?'},
+      {who:'in', text:'No pain, just overdue for a cleaning'},
+      {who:'out', text:'Perfect — a routine hygiene visit it is. Do you have dental insurance, or self-pay?', qr:['Insurance','Self-pay']},
+      {who:'in', text:'Self-pay'},
+      {who:'out', text:'Our hygiene visit is $60. Here are Dr. Chen’s next openings:', img:{label:'Clinic — Dr. Chen', hue:200}, text2:'Tue 9:30am · Wed 4:00pm · Fri 11:00am'},
+      {who:'in', text:'Tuesday 9:30 please'},
+      {who:'out', text:'Booked! Tuesday 9:30am with Dr. Chen. Please arrive 10 minutes early. Avoid coffee 1 hour before your visit. Anything else I can help with?'},
+      {who:'sys', text:'Escalation rule: if customer mentions pain → alert owner instantly'},
+      {who:'out', text:'(If you had reported pain, I would have connected you to our nurse immediately and alerted the clinic owner.)'}
+    ],
+    owner:[
+      {tag:'NEW PATIENT', color:'#25D366', name:'Self-pay hygiene visit booked', rows:[['When','Tuesday 9:30am · Dr. Chen'],['Revenue','$60'],['Score','78 — routine visit'],['Intake','completed via chat']], note:'Emergency rule armed: any “pain/swelling” mention pings the owner within seconds.'}
+    ]
+  },
+  realestate: {
+    tab:'Real Estate', biz:'UrbanKey Properties', avatar:'U', hue:25,
+    title:'Every enquiry becomes a qualified viewing',
+    desc:'Pally qualifies budget, timeline and must-haves, sends matching listings with photos, books viewings into the agent’s calendar and collects pre-viewing deposits for hot properties.',
+    points:['Qualifies budget, timeline, financing status','Sends listing cards with photos instantly','Books viewings and confirms 2 hours before','Only sends the agent pre-qualified, serious buyers'],
+    chips:['Viewing deposit','Buyer pre-qualified','Agent notified'],
+    convo:[
+      {who:'in', text:'Hi, looking for a 2-bed apartment near downtown. Budget around $1,200/mo'},
+      {who:'out', text:'Hi Daniel! Great brief. Two quick questions so I only send you winners: when do you need to move, and is your financing ready?', qr:['ASAP · ready','1–3 months','Just browsing']},
+      {who:'in', text:'ASAP · ready'},
+      {who:'out', text:'Excellent — ready-to-move buyers get priority. I found 2 matches for you:', img:{label:'Listing A · 2BR · $1,150', hue:25}, text2:'Unit 4B — 2 bed, balcony, 8 min to downtown — $1,150/mo'},
+      {who:'out', img:{label:'Listing B · 2BR · $1,190', hue:215}, text:'Unit 7A — renovated kitchen, parking included — $1,190/mo. Want to view either this week?'},
+      {who:'in', text:'4B looks great. Can I see it Saturday?'},
+      {who:'out', text:'Saturday works! Viewing at 11:00am with Agent Sofia. A $30 refundable viewing deposit confirms your slot and is returned at the door.', pay:true},
+      {who:'in', text:'Sent'},
+      {who:'out', text:'Confirmed for Saturday 11:00am — Unit 4B. Location pin and building access notes sent. Sofia will meet you at the lobby.'}
+    ],
+    owner:[
+      {tag:'HOT LEAD', color:'#f59e0b', name:'Daniel K. — financing ready', rows:[['Interest','Unit 4B · $1,150/mo'],['Move-in','ASAP'],['Viewing','Saturday 11:00am · deposit paid'],['Score','96 — buy-ready']], note:'Agent Sofia notified with full chat summary and buyer profile.'}
+    ]
+  },
+  restaurant: {
+    tab:'Restaurant', biz:'Casa Verde', avatar:'C', hue:140,
+    title:'Full tables, fewer phone calls',
+    desc:'Reservations, menu questions, large-party deposits and event catering enquiries — handled while the team cooks. No-shows drop because Pally confirms and reminds automatically.',
+    points:['Takes reservations with party size and occasions','Answers menu, allergy and opening-hours questions','Collects deposits for groups of 6+','Sends review requests after the visit'],
+    chips:['Group deposit','Allergy noted','Review request sent'],
+    convo:[
+      {who:'in', text:'Hi! Do you have a table for 8 tonight around 8?'},
+      {who:'out', text:'Hi! Casa Verde would love to host you. Tonight at 8:00pm we have the garden table for 8 available. Any occasion we should know about?'},
+      {who:'in', text:'Birthday dinner'},
+      {who:'out', text:'Happy birthday to your guest! For parties of 6+ we take a $40 deposit (fully deducted from your bill). Shall I hold the garden table?', qr:['Yes, hold it','Check 8:30 instead']},
+      {who:'in', text:'Yes, hold it'},
+      {who:'out', text:'Held for you! Here is tonight’s menu in case you want to pre-order:', img:{label:"Tonight's Menu", hue:140}, text2:'Deposit: $40 → deducted from bill tonight.', pay:true},
+      {who:'in', text:'Done!'},
+      {who:'out', text:'All set — garden table, tonight 8:00pm, party of 8. I will confirm again at 6pm, and we will have a candle ready. See you tonight!'}
+    ],
+    owner:[
+      {tag:'RESERVATION', color:'#25D366', name:'Garden table · party of 8', rows:[['When','Tonight 8:00pm'],['Deposit','$40 · paid'],['Occasion','Birthday — candle ready'],['Score','88 — confirmed']], note:'Kitchen pre-alerted for 8 covers at 8pm. Review request scheduled for tomorrow.'}
+    ]
+  },
+  airbnb: {
+    tab:'Airbnb', biz:'SeaBreeze Villa', avatar:'S', hue:190,
+    title:'A concierge for every guest',
+    desc:'Availability questions, local recommendations, check-in instructions and upsells — answered instantly across time zones, in the guest’s language. Hosts only hear about problems.',
+    points:['Answers availability & pricing instantly','Sends photos and house rules on request','Delivers check-in guides automatically','Upsells late checkout and airport pickup'],
+    chips:['Auto check-in guide','Late checkout upsold','Problem → host alert'],
+    convo:[
+      {who:'in', text:'Hi! Is the villa free next weekend? 2 guests'},
+      {who:'out', text:'Hello! SeaBreeze Villa is free Friday–Sunday next weekend. For 2 guests it is $140/night + $50 cleaning. Would you like me to hold it while you decide?', qr:['Hold it','See photos first']},
+      {who:'in', text:'See photos first'},
+      {who:'out', img:{label:'SeaBreeze Villa', hue:190}, text:'Beachfront terrace, 2 bedrooms, sunset view. House rules and the full gallery are on your booking page.'},
+      {who:'in', text:'Looks amazing. Booking it'},
+      {who:'out', text:'Wonderful! I have held Fri–Sun for 24 hours. Payment link sent — once paid you get the smart-lock code and my local recommendations.', pay:true},
+      {who:'in', text:'Paid!'},
+      {who:'out', text:'You are booked! Check-in is 3pm, smart-lock code sent separately. Tip: ask me for the best seafood spot within walking distance — or add late checkout for $25.'}
+    ],
+    owner:[
+      {tag:'BOOKING', color:'#25D366', name:'Fri–Sun · 2 guests · $470', rows:[['Channel','WhatsApp direct'],['Upsell','Late checkout offered'],['Guest msg','none needed — handled'],['Score','90 — self-served']], note:'Host was never interrupted. Direct booking saved ~15% OTA commission.'}
+    ]
+  }
+};
+
+/* ---- hero mini chat (auto loop) ---- */
+const heroScript = [
+  {who:'in', text:'Hi! Do you have a slot for a haircut today?'},
+  {who:'out', text:'Hi! Yes — today we have 3:30pm or 5:00pm with Marco. Which one?'},
+  {who:'in', text:'3:30 please'},
+  {who:'out', text:'Booked! Haircut — today 3:30pm with Marco, $25. See you soon!'}
+];
+(function heroLoop(){
+  const box = document.getElementById('heroChat');
+  let i = 0;
+  function next(){
+    if(i >= heroScript.length){
+      setTimeout(()=>{ box.innerHTML=''; i=0; next(); }, 2600);
+      return;
+    }
+    const m = heroScript[i++];
+    if(m.who === 'out'){
+      const t = document.createElement('div');
+      t.className = 'bubble out typing'; t.innerHTML = '<i></i><i></i><i></i>';
+      box.appendChild(t); box.scrollTop = box.scrollHeight;
+      setTimeout(()=>{ t.classList.remove('typing'); t.innerHTML = m.text + '<div class="b-meta">'+now()+' ✓✓</div>'; box.scrollTop = box.scrollHeight; setTimeout(next, 1300); }, 900);
+    } else {
+      addBubble(box, m, true);
+      setTimeout(next, 1200);
+    }
+  }
+  next();
+})();
+
+function addBubble(box, m, withMeta){
+  const b = document.createElement('div');
+  b.className = 'bubble ' + m.who;
+  let html = '';
+  if(m.img) html += '<div class="b-img"><img src="'+placeholderImg(m.img.label, m.img.hue)+'" alt=""></div>';
+  if(m.text) html += m.text;
+  if(m.text2) html += (html?'<br>':'') + '<span style="color:#3d5a52">'+m.text2+'</span>';
+  if(m.pay) html += (html?'<br>':'') + '<div style="margin-top:5px;background:#fff;border:1px solid #e3ece8;border-radius:8px;padding:7px 9px;display:flex;align-items:center;gap:7px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#075E54" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span style="font-size:12px;font-weight:700;color:#075E54">Secure payment link sent</span></div>';
+  if(m.qr){ html += '<div class="qr-row">'+ m.qr.map(q=>'<span class="qr">'+q+'</span>').join('') +'</div>'; }
+  if(m.who === 'sys') html = m.text;
+  else if(withMeta || m.who !== 'sys') html += '<div class="b-meta">'+(m.who==='out' ? now()+' ✓✓' : now())+'</div>';
+  b.innerHTML = html;
+  box.appendChild(b);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ---- main demo ---- */
+let cur = 'salon', view = 'chat', timers = [];
+function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+const $ = id => document.getElementById(id);
+
+function renderTabs(){
+  $('tabs').innerHTML = Object.keys(SCENARIOS).map(k =>
+    '<button class="tab'+(k===cur?' on':'')+'" onclick="switchScenario(\''+k+'\')">'+SCENARIOS[k].tab+'</button>').join('');
+}
+function renderInfo(){
+  const s = SCENARIOS[cur];
+  $('demoTitle').textContent = s.title;
+  $('demoDesc').textContent = s.desc;
+  $('demoPoints').innerHTML = s.points.map(p =>
+    '<div class="flex items-start gap-2.5 text-sm text-white/75"><span class="mt-0.5 w-5 h-5 rounded-full bg-wa/25 grid place-items-center shrink-0"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="3"><path d="M5 13l4 4 10-11"/></svg></span>'+p+'</div>').join('');
+  $('demoChips').innerHTML = s.chips.map(c => '<span class="pill bg-wa/15 text-wa">'+c+'</span>').join('');
+  $('demoBiz').textContent = s.biz;
+  const av = $('demoAvatar'); av.textContent = s.avatar;
+  av.style.background = 'linear-gradient(135deg, hsl('+s.hue+',60%,45%), hsl('+(s.hue+40)+',60%,32%))';
+  av.style.color = '#fff';
+}
+function setView(v){
+  view = v;
+  $('btnChatView').classList.toggle('on', v==='chat');
+  $('btnOwnerView').classList.toggle('on', v==='owner');
+  $('demoChat').classList.toggle('hidden', v!=='chat');
+  $('ownerPanel').classList.toggle('hidden', v!=='owner');
+  $('inputHint').textContent = v==='chat' ? 'Pally is handling this chat…' : 'Owner dashboard — live lead feed';
+}
+function renderOwner(){
+  const s = SCENARIOS[cur];
+  const leads = s.owner.map(l =>
+    '<div class="lead-card"><div class="flex items-center justify-between mb-2"><span class="pill" style="background:'+l.color+'22;color:'+l.color+'">'+l.tag+'</span><span class="text-[10px] text-emerald-950/40">just now</span></div>'+
+    '<div class="font-bold text-sm">'+l.name+'</div>'+
+    '<div class="mt-2.5 space-y-1.5">'+ l.rows.map(r=>'<div class="flex justify-between text-xs"><span class="text-emerald-950/45">'+r[0]+'</span><span class="font-semibold text-right">'+r[1]+'</span></div>').join('') +'</div>'+
+    '<div class="mt-3 pt-2.5 border-t border-emerald-100 text-[11px] text-emerald-950/50 flex gap-1.5"><svg class="shrink-0 mt-0.5" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="3"><path d="M5 13l4 4 10-11"/></svg>'+l.note+'</div></div>').join('');
+  $('ownerPanel').innerHTML =
+    '<div class="flex items-center justify-between"><div class="font-disp font-bold text-sm text-ink">Owner radar</div><span class="pill bg-wa/15 text-wadark">live</span></div>' +
+    leads +
+    '<div class="bg-ink text-white rounded-xl p-3.5 text-[11px] leading-relaxed"><span class="font-bold text-wa">Rule active:</span> Pally only pings the owner when a lead is qualified, ready to book, or upset. Everything else is handled silently.</div>';
+}
+function playDemo(fromIdx){
+  clearTimers();
+  setView('chat');
+  const box = $('demoChat'); box.innerHTML = '';
+  $('playBtn').textContent = 'Playing…';
+  const msgs = SCENARIOS[cur].convo;
+  let i = fromIdx || 0;
+  function step(){
+    if(i >= msgs.length){
+      $('playBtn').textContent = 'Replay conversation';
+      timers.push(setTimeout(()=>{ setView('owner'); }, 1400));
+      return;
+    }
+    const m = msgs[i++];
+    if(m.who === 'sys'){ addBubble(box, m); timers.push(setTimeout(step, 1500)); return; }
+    if(m.who === 'out'){
+      const t = document.createElement('div');
+      t.className = 'bubble out typing'; t.innerHTML = '<i></i><i></i><i></i>';
+      box.appendChild(t); box.scrollTop = box.scrollHeight;
+      timers.push(setTimeout(()=>{ t.remove(); addBubble(box, m); timers.push(setTimeout(step, 1100)); }, 850));
+    } else {
+      addBubble(box, m);
+      timers.push(setTimeout(step, 1250));
+    }
+  }
+  step();
+}
+function restartDemo(){ playDemo(0); }
+function switchScenario(k){ cur = k; renderTabs(); renderInfo(); renderOwner(); playDemo(0); }
+
+renderTabs(); renderInfo(); renderOwner();
+
+/* ---- scroll reveal ---- */
+const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} }), {threshold:.12});
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
